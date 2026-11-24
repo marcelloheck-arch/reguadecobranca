@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Demo — Régua de Cobrança no WhatsApp (Escolas)</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
+
+  /* ============================================================
+     CONFIGURAÇÃO — só editar aqui (cores iguais à demo de atendimento)
+     ============================================================ */
+  :root {
+    --ink: #123B3D;
+    --ink-light: #2F6F6B;
+    --paper: #FBF7F0;
+    --paper-dim: #F1EAD9;
+    --text-dark: #1C2422;
+    --text-soft: #5B6664;
+    --accent: #E0932E;
+    --accent-dark: #B8721A;
+    --ok: #4F8F6B;
+    --warn: #C9811F;
+    --bad: #B5503C;
+    --radius: 18px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font-family: 'Manrope', sans-serif; color: var(--text-dark);
+    background: var(--paper); padding: 20px 14px 40px;
+  }
+  .wrap { max-width: 1040px; margin: 0 auto; }
+  h1 { font-size: 22px; letter-spacing: -0.4px; margin: 0 0 4px; color: var(--ink); }
+  .sub { color: var(--text-soft); font-size: 14px; margin: 0 0 18px; }
+
+  /* ---------- passos ---------- */
+  .passos { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; }
+  .passo {
+    flex: 1; min-width: 150px; background: white; border: 1.5px solid var(--paper-dim);
+    border-radius: 14px; padding: 10px 12px; font-family: inherit; text-align: left;
+    cursor: pointer; color: var(--text-soft); font-size: 12.5px; font-weight: 600;
+  }
+  .passo b { display: block; font-size: 13.5px; color: var(--ink); font-weight: 800; }
+  .passo.ativo { background: var(--ink); border-color: var(--ink); color: #B9D6D3; }
+  .passo.ativo b { color: white; }
+  .passo:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .tela-passo { display: none; }
+  .tela-passo.ativa { display: block; animation: entra 0.3s ease; }
+  @keyframes entra { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+  .cartao { background: white; border: 1.5px solid var(--paper-dim); border-radius: 16px; padding: 16px; }
+  .cartao h2 { font-size: 15px; margin: 0 0 10px; color: var(--ink); }
+  .dica {
+    background: #FFF4DF; border: 1.5px solid #F0D9A8; color: #6B4A12;
+    border-radius: 12px; padding: 10px 14px; font-size: 13px; margin-bottom: 14px;
+  }
+  .btn {
+    background: var(--accent); color: #2B1B03; border: none; border-radius: 12px;
+    font-family: inherit; font-weight: 800; font-size: 14px; padding: 12px 18px; cursor: pointer;
+  }
+  .btn:hover { background: var(--accent-dark); color: white; }
+  .btn.sec { background: white; color: var(--ink); border: 1.5px solid var(--paper-dim); }
+  .btn.sec:hover { background: var(--ink); color: white; }
+  .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+  .linha-btn { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; align-items: center; }
+
+  /* ---------- selos de cuidado ---------- */
+  .selos { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+  .selo {
+    background: #E8F3EC; color: #2F5F44; border-radius: 999px; padding: 5px 11px;
+    font-size: 12px; font-weight: 700;
+  }
+
+  /* ---------- tabela ---------- */
+  .tabela-rolagem { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 620px; }
+  th { text-align: left; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-soft); padding: 8px 10px; border-bottom: 2px solid var(--paper-dim); }
+  td { padding: 9px 10px; border-bottom: 1px solid var(--paper-dim); }
+  .tag { display: inline-block; border-radius: 999px; padding: 3px 9px; font-size: 11.5px; font-weight: 700; background: var(--paper-dim); color: var(--text-soft); }
+  .tag.fila { background: #E2EEF0; color: var(--ink-light); }
+  .tag.pago { background: #E8F3EC; color: #2F5F44; }
+  .tag.prometeu { background: #FFF1D6; color: #8A5A10; }
+  .tag.contato { background: #F8E3DD; color: #8C3A28; }
+  .tag.saiu { background: #ECECEC; color: #666; }
+
+  /* ---------- passo 2: celular + bastidores ---------- */
+  .duas-colunas { display: grid; grid-template-columns: 400px 1fr; gap: 22px; align-items: start; }
+  @media (max-width: 860px) { .duas-colunas { grid-template-columns: 1fr; } }
+  .telefone {
+    width: 380px; max-width: 100%; background: var(--ink); border-radius: 32px; padding: 10px;
+    box-shadow: 0 24px 60px rgba(18, 59, 61, 0.28); margin: 0 auto;
+  }
+  .tela { background: var(--paper-dim); border-radius: 24px; overflow: hidden; display: flex; flex-direction: column; height: 640px; }
+  .cabecalho { background: var(--ink); color: var(--paper); padding: 16px 20px; display: flex; align-items: center; gap: 12px; }
+  .avatar { width: 38px; height: 38px; border-radius: 50%; background: var(--accent); display: flex; align-items: center; justify-content: center; font-weight: 800; color: #2B1B03; flex-shrink: 0; }
+  .nome { font-weight: 700; font-size: 15px; }
+  .status { font-size: 12px; color: #B9D6D3; display: flex; align-items: center; gap: 5px; }
+  .ponto { width: 6px; height: 6px; border-radius: 50%; background: #6FE0A8; }
+  .corpo { flex: 1; overflow-y: auto; padding: 16px 14px; display: flex; flex-direction: column; gap: 8px; scroll-behavior: smooth; }
+  .corpo::-webkit-scrollbar { width: 5px; }
+  .corpo::-webkit-scrollbar-thumb { background: #D8CFB8; border-radius: 8px; }
+  .dia { align-self: center; background: #E3DAC2; color: #6A6350; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 8px; }
+  .bolha {
+    max-width: 86%; padding: 10px 13px; border-radius: var(--radius); font-size: 13.5px; line-height: 1.48;
+    opacity: 0; transform: translateY(6px); animation: entra2 0.32s ease forwards; white-space: pre-line;
+  }
+  @keyframes entra2 { to { opacity: 1; transform: none; } }
+  .bolha.bot { align-self: flex-start; background: var(--paper); border-bottom-left-radius: 5px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+  .bolha.user { align-self: flex-end; background: var(--ink-light); color: white; border-bottom-right-radius: 5px; }
+  .bolha .rodape-msg { display: block; margin-top: 6px; font-size: 11px; color: var(--text-soft); }
+  .bolha.doc { display: flex; gap: 10px; align-items: center; background: white; border: 1.5px solid var(--paper-dim); }
+  .bolha.doc .icone { width: 34px; height: 40px; background: #F8E3DD; color: var(--bad); border-radius: 6px; font-size: 10px; font-weight: 800; display: flex; align-items: center; justify-content: center; }
+  .bolha.pix { font-family: ui-monospace, Menlo, monospace; font-size: 11.5px; word-break: break-all; background: white; border: 1.5px dashed #C9BFA4; }
+  .digitando { align-self: flex-start; display: flex; gap: 4px; padding: 12px 15px; background: var(--paper); border-radius: var(--radius); border-bottom-left-radius: 5px; }
+  .digitando span { width: 6px; height: 6px; border-radius: 50%; background: #B9B0A0; animation: pulsa 1.1s infinite ease-in-out; }
+  .digitando span:nth-child(2) { animation-delay: 0.15s; }
+  .digitando span:nth-child(3) { animation-delay: 0.3s; }
+  @keyframes pulsa { 0%, 60%, 100% { transform: translateY(0); opacity: 0.5; } 30% { transform: translateY(-4px); opacity: 1; } }
+
+  .botoes-template { align-self: flex-start; width: 86%; display: flex; flex-direction: column; gap: 4px; margin-top: -4px; animation: entra2 0.3s ease forwards; opacity: 0; }
+  .btn-wpp {
+    background: white; border: none; border-radius: 10px; color: #1B7DC4; font-family: inherit;
+    font-size: 13.5px; font-weight: 700; padding: 10px; cursor: pointer; text-align: center;
+    box-shadow: 0 1px 1px rgba(0,0,0,0.08);
+  }
+  .btn-wpp:hover, .btn-wpp:focus-visible { background: #EAF4FB; outline: none; }
+  .btn-wpp.sair { color: var(--text-soft); font-weight: 600; font-size: 12.5px; }
+  .btn-wpp:disabled { opacity: 0.5; cursor: default; }
+  .rodape-tel { padding: 10px 14px; background: var(--paper); border-top: 1px solid var(--paper-dim); font-size: 12px; color: var(--text-soft); text-align: center; }
+
+  .bastidores { background: white; border: 1.5px solid var(--paper-dim); border-radius: 16px; padding: 16px; }
+  .bastidores h2 { font-size: 15px; margin: 0 0 4px; color: var(--ink); }
+  .bastidores p { font-size: 12.5px; color: var(--text-soft); margin: 0 0 12px; }
+  .log { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; max-height: 330px; overflow-y: auto; }
+  .log li { font-size: 12.5px; border-left: 3px solid var(--accent); background: var(--paper); padding: 7px 10px; border-radius: 0 8px 8px 0; animation: entra 0.3s ease; }
+  .log li small { color: var(--text-soft); display: block; font-size: 11px; }
+  .info-template { margin-top: 14px; font-size: 12.5px; background: var(--paper); border-radius: 12px; padding: 12px; line-height: 1.6; }
+  .info-template b { color: var(--ink); }
+
+  /* ---------- passo 3: painel ---------- */
+  .quadro { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  @media (max-width: 900px) { .quadro { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 520px) { .quadro { grid-template-columns: 1fr; } }
+  .coluna { background: var(--paper-dim); border-radius: 14px; padding: 10px; min-height: 180px; }
+  .coluna h3 { font-size: 12.5px; margin: 2px 4px 10px; display: flex; justify-content: space-between; align-items: center; color: var(--ink); }
+  .coluna h3 .n { background: white; border-radius: 999px; padding: 1px 9px; font-size: 12px; }
+  .card { background: white; border-radius: 10px; padding: 9px 11px; margin-bottom: 8px; font-size: 12.5px; box-shadow: 0 1px 2px rgba(0,0,0,0.06); animation: entra 0.35s ease; }
+  .card b { display: block; font-size: 13px; }
+  .card span { color: var(--text-soft); display: block; }
+  .card.novo { outline: 2px solid var(--accent); }
+  .card .acao { margin-top: 6px; font-family: inherit; font-size: 11.5px; font-weight: 700; border: 1.5px solid var(--paper-dim); background: white; color: var(--ink); border-radius: 8px; padding: 4px 8px; cursor: pointer; }
+  .card .acao:hover { background: var(--ink); color: white; }
+  .vazio { font-size: 12px; color: var(--text-soft); padding: 6px 4px; font-style: italic; }
+  .saiu-linha { margin-top: 12px; font-size: 12.5px; color: var(--text-soft); }
+
+  /* ---------- passo 4: dashboard ---------- */
+  .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 14px; }
+  @media (max-width: 760px) { .kpis { grid-template-columns: repeat(2, 1fr); } }
+  .kpi { background: white; border: 1.5px solid var(--paper-dim); border-radius: 14px; padding: 14px; }
+  .kpi .v { font-size: 26px; font-weight: 800; color: var(--ink); letter-spacing: -0.5px; }
+  .kpi .l { font-size: 12px; color: var(--text-soft); }
+  .barras { display: flex; flex-direction: column; gap: 12px; margin-top: 8px; }
+  .barra-linha { display: grid; grid-template-columns: 150px 1fr 56px; gap: 10px; align-items: center; font-size: 13px; }
+  .barra-trilho { background: var(--paper-dim); height: 22px; border-radius: 8px; overflow: hidden; }
+  .barra-preench { height: 100%; border-radius: 8px; transition: width 0.7s ease; }
+  .nota-fict { font-size: 11.5px; color: var(--text-soft); margin-top: 12px; }
+
+  .cta-box { margin-top: 18px; background: var(--ink); color: white; border-radius: 16px; padding: 18px; display: flex; gap: 14px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+  .cta-box p { margin: 0; font-size: 14px; max-width: 520px; }
+  .cta-box .btn { background: var(--accent); }
+  .aviso-demo { text-align: center; font-size: 11.5px; color: var(--text-soft); margin-top: 14px; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .bolha, .botoes-template, .tela-passo.ativa, .card, .log li { animation: none; opacity: 1; transform: none; }
+    .digitando span { animation: none; opacity: 1; }
+    .barra-preench { transition: none; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Régua de cobrança no WhatsApp</h1>
+  <p class="sub">Demonstração com dados fictícios — <span id="nomeEscolaSub"></span>. Clique nas etapas ou use os botões para percorrer o fluxo.</p>
+
+  <div class="passos" id="passos" role="tablist"></div>
+
+  <!-- PASSO 1 -->
+  <section class="tela-passo" id="p1">
+    <div class="selos">
+      <span class="selo">✔ API oficial do WhatsApp</span>
+      <span class="selo">✔ Template de utilidade</span>
+      <span class="selo">✔ Só horário comercial (08h–18h)</span>
+      <span class="selo">✔ Limite de 200 mensagens/dia</span>
+      <span class="selo">✔ Só quem já é cliente (LGPD)</span>
+    </div>
+    <div class="cartao">
+      <h2>1. A escola envia a planilha de mensalidades</h2>
+      <div class="tabela-rolagem">
+        <table>
+          <thead><tr><th>Responsável</th><th>Aluno(a)</th><th>Mensalidade</th><th>Vencimento</th><th>Situação na fila</th></tr></thead>
+          <tbody id="tbPlanilha"></tbody>
+        </table>
+      </div>
+      <div class="linha-btn">
+        <button class="btn" id="btnEnviar">📤 Colocar na fila e enviar lembretes</button>
+        <span style="font-size:12.5px;color:var(--text-soft)" id="infoFila">Cada responsável entra na fila uma única vez (sem duplicidade).</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- PASSO 2 -->
+  <section class="tela-passo" id="p2">
+    <div class="dica">👆 Agora você é a <b>Mariana Souza</b>, responsável pelo aluno Lucas. Toque nos botões do lembrete como se fosse no seu WhatsApp.</div>
+    <div class="duas-colunas">
+      <div class="telefone">
+        <div class="tela">
+          <div class="cabecalho">
+            <div class="avatar" id="avatarEscola">E</div>
+            <div><div class="nome" id="nomeEscolaTel"></div><div class="status"><span class="ponto"></span> conta oficial</div></div>
+          </div>
+          <div class="corpo" id="corpo"></div>
+          <div class="rodape-tel" id="rodapeTel">Os botões abaixo da mensagem são os do template oficial.</div>
+        </div>
+      </div>
+      <div>
+        <div class="bastidores">
+          <h2>🔍 Bastidores</h2>
+          <p>O que o sistema faz a cada toque, em tempo real:</p>
+          <ul class="log" id="log"></ul>
+          <div class="info-template">
+            <b>Template:</b> categoria <b>Utilidade</b> · tom informativo, sem ameaça<br>
+            <b>Botões:</b> Pagar com Pix · 2ª via · Já paguei · Parar de receber<br>
+            <b>Envio:</b> só em horário comercial, dentro do limite diário
+          </div>
+        </div>
+        <div class="linha-btn">
+          <button class="btn sec" id="btnDiaSeguinte">⏭️ Simular o dia seguinte ao vencimento</button>
+          <button class="btn" id="btnPainel">Ver o painel da escola →</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PASSO 3 -->
+  <section class="tela-passo" id="p3">
+    <div class="cartao">
+      <h2>3. Painel da secretaria — atualizado a cada resposta</h2>
+      <div class="quadro" id="quadro"></div>
+      <div class="saiu-linha" id="saiuLinha"></div>
+      <div class="linha-btn"><button class="btn" id="btnDash">Ver o dashboard →</button></div>
+    </div>
+  </section>
+
+  <!-- PASSO 4 -->
+  <section class="tela-passo" id="p4">
+    <div class="kpis" id="kpis"></div>
+    <div class="cartao">
+      <h2>Inadimplência: antes e depois da régua</h2>
+      <div class="barras" id="barras"></div>
+      <p class="nota-fict">Valores ilustrativos de uma escola fictícia. No piloto, medimos a inadimplência real antes e depois.</p>
+    </div>
+    <div class="cta-box">
+      <p>Quer ver isso rodando na sua escola, com a sua planilha e o seu número oficial do WhatsApp?</p>
+      <button class="btn" id="btnCta">📅 Marcar uma conversa rápida</button>
+    </div>
+    <div class="aviso-demo">Isto é uma demonstração — nenhuma mensagem real foi enviada.</div>
+  </section>
+</div>
+
+<script>
+/* ============================================================
+   CONFIGURAÇÃO — edite só esta seção para reaproveitar
+   ============================================================ */
+const CONFIG = {
+  nomeEscola: 'Escola Aprender Mais',
+  whatsappDestino: '5548988720983', // só dígitos, com DDI+DDD
+  vencimento: '10/12',
+  pixCodigo: '00020126DEMO-EXEMPLO-NAO-E-UM-CODIGO-REAL5204000053039865802BR',
+  limiteDia: 200,
+  antesInadimplencia: 18, // % de referência para o "antes"
+};
+
+/* alunos fictícios — "demo: true" é a Mariana (a pessoa que testa) */
+const alunos = [
+  { id: 1, resp: 'Mariana Souza',   aluno: 'Lucas',   valor: 480, demo: true },
+  { id: 2, resp: 'Carlos Menezes',  aluno: 'Beatriz', valor: 520 },
+  { id: 3, resp: 'Fernanda Lima',   aluno: 'Pedro',   valor: 480 },
+  { id: 4, resp: 'Roberto Alves',   aluno: 'Sofia',   valor: 610 },
+  { id: 5, resp: 'Juliana Prado',   aluno: 'Davi',    valor: 480 },
+  { id: 6, resp: 'Marcos Teixeira', aluno: 'Alice',   valor: 520 },
+  { id: 7, resp: 'Patrícia Gomes',  aluno: 'Miguel',  valor: 380 },
+  { id: 8, resp: 'André Ribeiro',   aluno: 'Helena',  valor: 610 },
+  { id: 9, resp: 'Camila Duarte',   aluno: 'Enzo',    valor: 480 },
+  { id: 10, resp: 'Sérgio Pinto',   aluno: 'Laura',   valor: 520 },
+];
+alunos.forEach(a => { a.status = 'planilha'; a.nota = ''; });
+
+const NOMES_PASSO = [
+  ['1', 'Planilha → fila'],
+  ['2', 'Lembrete no WhatsApp'],
+  ['3', 'Painel da secretaria'],
+  ['4', 'Dashboard'],
+];
+const money = v => 'R$ ' + v.toLocaleString('pt-BR');
+const $ = id => document.getElementById(id);
+
+$('nomeEscolaSub').textContent = CONFIG.nomeEscola;
+$('nomeEscolaTel').textContent = CONFIG.nomeEscola;
+$('avatarEscola').textContent = CONFIG.nomeEscola.charAt(0);
+
+/* ---------- navegação entre passos ---------- */
+let passoAtual = 0;
+function renderPassos() {
+  $('passos').innerHTML = '';
+  NOMES_PASSO.forEach(([n, t], i) => {
+    const b = document.createElement('button');
+    b.className = 'passo' + (i === passoAtual ? ' ativo' : '');
+    b.setAttribute('role', 'tab');
+    const bb = document.createElement('b'); bb.textContent = n + '. ' + t;
+    b.appendChild(bb);
+    b.onclick = () => irPara(i);
+    $('passos').appendChild(b);
+  });
+}
+function irPara(i) {
+  passoAtual = i;
+  document.querySelectorAll('.tela-passo').forEach((s, k) => s.classList.toggle('ativa', k === i));
+  renderPassos();
+  if (i === 0) renderPlanilha();
+  if (i === 2) renderPainel();
+  if (i === 3) renderDash();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/* ---------- passo 1: planilha ---------- */
+const ROTULO_STATUS = {
+  planilha: ['Na planilha', ''],
+  fila: ['Na fila', 'fila'],
+  pago: ['Pago', 'pago'],
+  prometeu: ['Prometeu', 'prometeu'],
+  contato: ['Precisa de contato', 'contato'],
+  saiu: ['Pediu para sair', 'saiu'],
+  aguardando: ['Lembrete enviado', 'fila'],
+};
+function tag(status) {
+  const [t, c] = ROTULO_STATUS[status];
+  const s = document.createElement('span'); s.className = 'tag ' + c; s.textContent = t; return s;
+}
+function renderPlanilha() {
+  const tb = $('tbPlanilha'); tb.innerHTML = '';
+  alunos.forEach(a => {
+    const tr = document.createElement('tr');
+    [a.resp, a.aluno, money(a.valor), CONFIG.vencimento].forEach(t => {
+      const td = document.createElement('td'); td.textContent = t; tr.appendChild(td);
+    });
+    const td = document.createElement('td'); td.appendChild(tag(a.status)); tr.appendChild(td);
+    tb.appendChild(tr);
+  });
+}
+
+/* respostas "já ocorridas" dos demais responsáveis, para o painel ficar vivo */
+const RESPOSTAS_OUTROS = {
+  2: ['pago', 'Pagou via Pix'],
+  3: ['prometeu', 'Prometeu pagar até 12/12'],
+  4: ['contato', 'Pediu para falar com a secretaria'],
+  5: ['pago', 'Pagou via Pix'],
+  6: ['pago', 'Informou pagamento'],
+  7: ['pago', 'Pagou via Pix'],
+  8: ['aguardando', 'Ainda não respondeu'],
+  9: ['pago', 'Pagou via Pix'],
+  10: ['saiu', 'Tocou em "Parar de receber"'],
+};
+let enviado = false;
+$('btnEnviar').onclick = () => {
+  if (enviado) { irPara(1); return; }
+  enviado = true;
+  alunos.forEach(a => { a.status = 'fila'; });
+  renderPlanilha();
+  $('btnEnviar').disabled = true;
+  $('infoFila').textContent = 'Enviando dentro do horário comercial e do limite diário…';
+  addLog(`Fila criada: ${alunos.length} responsáveis, sem duplicados.`, 'Contagem do dia: ' + alunos.length + '/' + CONFIG.limiteDia);
+  let i = 0;
+  const t = setInterval(() => {
+    const a = alunos[i];
+    a.status = a.demo ? 'aguardando' : a.status;
+    if (!a.demo) {
+      const [st, nota] = RESPOSTAS_OUTROS[a.id];
+      a.status = st; a.nota = nota;
+    }
+    renderPlanilha();
+    i++;
+    if (i >= alunos.length) {
+      clearInterval(t);
+      $('infoFila').textContent = '✅ Lembretes enviados. Agora veja como a Mariana recebe o dela.';
+      $('btnEnviar').disabled = false;
+      $('btnEnviar').textContent = 'Ver o lembrete no WhatsApp →';
+      iniciaChat();
+    }
+  }, 260);
+};
+
+/* ---------- passo 2: chat ---------- */
+const corpo = $('corpo');
+let ocupado = false;
+let chatIniciado = false;
+let diaSeguinteFeito = false;
+function scrollFim() { corpo.scrollTop = corpo.scrollHeight; }
+function hora() { return new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }); }
+function addLog(texto, detalhe) {
+  const li = document.createElement('li');
+  li.textContent = texto;
+  if (detalhe) { const s = document.createElement('small'); s.textContent = detalhe; li.appendChild(s); }
+  $('log').prepend(li);
+}
+function bolha(classe, texto) {
+  const b = document.createElement('div');
+  b.className = 'bolha ' + classe; b.textContent = texto;
+  corpo.appendChild(b); scrollFim(); return b;
+}
+function botBolha(texto, classe = 'bot') {
+  return new Promise(res => {
+    const d = document.createElement('div'); d.className = 'digitando';
+    d.innerHTML = '<span></span><span></span><span></span>';
+    corpo.appendChild(d); scrollFim();
+    setTimeout(() => { d.remove(); res(bolha(classe, texto)); }, 650 + Math.random() * 300);
+  });
+}
+function docBolha(nome) {
+  return new Promise(res => {
+    setTimeout(() => {
+      const b = document.createElement('div'); b.className = 'bolha bot doc';
+      const ic = document.createElement('div'); ic.className = 'icone'; ic.textContent = 'PDF';
+      const tx = document.createElement('div'); tx.textContent = nome;
+      b.appendChild(ic); b.appendChild(tx); corpo.appendChild(b); scrollFim(); res();
+    }, 700);
+  });
+}
+let botoesAtuais = null;
+function mostraBotoes(lista) {
+  if (botoesAtuais) botoesAtuais.remove();
+  const w = document.createElement('div'); w.className = 'botoes-template';
+  lista.forEach(([rot, fn, cls]) => {
+    const b = document.createElement('button');
+    b.className = 'btn-wpp ' + (cls || ''); b.textContent = rot;
+    b.onclick = async () => {
+      if (ocupado) return;
+      ocupado = true;
+      bolha('user', rot);
+      await fn();
+      ocupado = false;
+    };
+    w.appendChild(b);
+  });
+  corpo.appendChild(w); botoesAtuais = w; scrollFim();
+}
+const demo = () => alunos.find(a => a.demo);
+function marca(status, nota) { const a = demo(); a.status = status; a.nota = nota; }
+
+const BOTOES_LEMBRETE = () => [
+  ['💠 Pagar com Pix', acaoPix],
+  ['📄 2ª via', acaoSegundaVia],
+  ['✅ Já paguei', acaoJaPaguei],
+  ['Parar de receber', acaoSair, 'sair'],
+];
+const BOTOES_AVISO = () => [
+  ['💠 Pagar com Pix', acaoPix],
+  ['🗓️ Vou pagar até 12/12', acaoPrometer],
+  ['💬 Falar com a secretaria', acaoSecretaria],
+  ['Parar de receber', acaoSair, 'sair'],
+];
+let modoAviso = false;
+const botoesDoMomento = () => modoAviso ? BOTOES_AVISO() : BOTOES_LEMBRETE();
+
+async function acaoPix() {
+  addLog('Botão "Pagar com Pix" tocado', 'Gerando código Pix da mensalidade (exemplo).');
+  await botBolha('Pronto! Esse é o código Pix copia e cola da mensalidade de ' + money(480) + ':');
+  await botBolha(CONFIG.pixCodigo, 'bot pix');
+  await botBolha('Depois de pagar, é só tocar em "Já paguei". 😊');
+  mostraBotoes(botoesDoMomento());
+}
+async function acaoSegundaVia() {
+  addLog('Botão "2ª via" tocado', 'Boleto da mensalidade reenviado automaticamente.');
+  await botBolha('Claro! Aqui está a 2ª via da mensalidade de novembro:');
+  await docBolha('mensalidade-lucas-' + CONFIG.vencimento.replace('/', '-') + '.pdf');
+  mostraBotoes(botoesDoMomento());
+}
+async function acaoJaPaguei() {
+  marca('pago', 'Informou pagamento (a conferir)');
+  addLog('Botão "Já paguei" tocado', 'Card movido para "Pagaram" no painel. A secretaria só confere.');
+  await botBolha('Obrigada, Mariana! Registramos o seu pagamento. A secretaria confere e você não receberá mais avisos desta mensalidade. 💚');
+  mostraBotoes(botoesDoMomento());
+}
+async function acaoPrometer() {
+  marca('prometeu', 'Prometeu pagar até 12/12');
+  addLog('Botão "Vou pagar até 12/12" tocado', 'Card movido para "Prometeram". Novo lembrete automático em 12/12.');
+  await botBolha('Combinado, Mariana! Anotamos o seu compromisso até 12/12. Vamos te lembrar nesse dia. 🙂');
+  mostraBotoes(botoesDoMomento());
+}
+async function acaoSecretaria() {
+  marca('contato', 'Pediu para falar com a secretaria');
+  addLog('Botão "Falar com a secretaria" tocado', 'Card movido para "Precisam de contato" (transbordo para humano).');
+  await botBolha('Tudo bem! Já avisamos a secretaria, e uma pessoa vai te chamar por aqui em horário comercial. 💬');
+  mostraBotoes(botoesDoMomento());
+}
+async function acaoSair() {
+  marca('saiu', 'Pediu para sair');
+  addLog('Botão "Parar de receber" tocado', 'Contato bloqueado na hora. Nenhuma mensagem de cobrança será enviada a ele.');
+  await botBolha('Certo, Mariana. Você não receberá mais mensagens de cobrança por este canal. Se precisar, fale com a secretaria da escola.');
+  if (botoesAtuais) { botoesAtuais.remove(); botoesAtuais = null; }
+}
+
+async function iniciaChat() {
+  if (chatIniciado) return; chatIniciado = true;
+  const d = document.createElement('div'); d.className = 'dia'; d.textContent = 'Hoje'; corpo.appendChild(d);
+  await botBolha(
+`Olá, Mariana! 👋
+Aqui é a ${CONFIG.nomeEscola}.
+
+Passando para lembrar que a mensalidade do(a) Lucas, no valor de ${money(480)}, vence em ${CONFIG.vencimento}.
+
+Escolha abaixo como prefere seguir:`);
+  addLog('Template de utilidade enviado', 'Lembrete de vencimento com 4 botões · ' + hora());
+  mostraBotoes(BOTOES_LEMBRETE());
+}
+
+$('btnDiaSeguinte').onclick = async () => {
+  if (!chatIniciado) { addLog('Envie primeiro os lembretes no passo 1.'); return; }
+  if (diaSeguinteFeito || ocupado) return;
+  diaSeguinteFeito = true; ocupado = true;
+  $('btnDiaSeguinte').disabled = true;
+  const d = document.createElement('div'); d.className = 'dia'; d.textContent = 'Dia seguinte ao vencimento'; corpo.appendChild(d);
+  if (demo().status === 'pago') {
+    addLog('Régua verificou: pagamento informado', 'Nenhum novo aviso enviado à Mariana.');
+    await botBolha('(Nenhum aviso hoje: a Mariana já informou o pagamento, então a régua não incomoda quem pagou.)', 'bot');
+  } else if (demo().status === 'saiu') {
+    addLog('Régua verificou: contato pediu para sair', 'Nenhum aviso enviado (opt-out respeitado).');
+    await botBolha('(Nenhum aviso hoje: a Mariana pediu para não receber mais mensagens, e isso é respeitado.)', 'bot');
+  } else {
+    modoAviso = true;
+    await botBolha(
+`Olá, Mariana! Tudo bem?
+
+Não identificamos o pagamento da mensalidade do(a) Lucas, que venceu em ${CONFIG.vencimento}. Pode ser que já esteja a caminho.
+
+Se precisar, escolha uma opção abaixo:`);
+    addLog('Novo aviso enviado a quem não pagou', 'Mesmo template de utilidade, tom cordial · ' + hora());
+    mostraBotoes(BOTOES_AVISO());
+  }
+  ocupado = false;
+};
+$('btnPainel').onclick = () => irPara(2);
+
+/* ---------- passo 3: painel ---------- */
+function renderPainel() {
+  const colunas = [
+    ['pago', '✅ Pagaram'],
+    ['prometeu', '🗓️ Prometeram'],
+    ['contato', '📞 Precisam de contato'],
+    ['aguardando', '⏳ Aguardando resposta'],
+  ];
+  const q = $('quadro'); q.innerHTML = '';
+  colunas.forEach(([st, titulo]) => {
+    const col = document.createElement('div'); col.className = 'coluna';
+    const itens = alunos.filter(a => a.status === st || (st === 'aguardando' && (a.status === 'fila' || a.status === 'planilha')));
+    const h = document.createElement('h3');
+    const ts = document.createElement('span'); ts.textContent = titulo;
+    const n = document.createElement('span'); n.className = 'n'; n.textContent = itens.length;
+    h.appendChild(ts); h.appendChild(n); col.appendChild(h);
+    if (!itens.length) { const v = document.createElement('div'); v.className = 'vazio'; v.textContent = 'Ninguém aqui.'; col.appendChild(v); }
+    itens.forEach(a => {
+      const c = document.createElement('div'); c.className = 'card' + (a.demo ? ' novo' : '');
+      const b = document.createElement('b'); b.textContent = a.resp + (a.demo ? ' (você)' : '');
+      const s1 = document.createElement('span'); s1.textContent = a.aluno + ' · ' + money(a.valor);
+      const s2 = document.createElement('span'); s2.textContent = a.nota || 'Lembrete enviado';
+      c.appendChild(b); c.appendChild(s1); c.appendChild(s2);
+      if (st === 'contato') {
+        const btn = document.createElement('button'); btn.className = 'acao'; btn.textContent = 'Abrir conversa';
+        btn.onclick = () => { btn.textContent = 'Assumido pela secretaria ✔'; btn.disabled = true; };
+        c.appendChild(btn);
+      }
+      col.appendChild(c);
+    });
+    q.appendChild(col);
+  });
+  const saiu = alunos.filter(a => a.status === 'saiu').length;
+  $('saiuLinha').textContent = saiu
+    ? `🚫 ${saiu} responsável(is) pediram para não receber mais mensagens e já estão bloqueados no envio.`
+    : '';
+}
+$('btnDash').onclick = () => irPara(3);
+
+/* ---------- passo 4: dashboard ---------- */
+function renderDash() {
+  const total = alunos.reduce((s, a) => s + a.valor, 0);
+  const pagos = alunos.filter(a => a.status === 'pago');
+  const recebido = pagos.reduce((s, a) => s + a.valor, 0);
+  const aberto = total - recebido;
+  const pct = Math.round(aberto / total * 100);
+  const kpis = [
+    [money(recebido), 'recebido até agora'],
+    [money(aberto), 'ainda em aberto'],
+    [alunos.filter(a => a.status === 'prometeu').length + ' prometeram', 'com data combinada'],
+    [alunos.filter(a => a.status === 'contato').length + ' para contato', 'a secretaria assume'],
+  ];
+  const k = $('kpis'); k.innerHTML = '';
+  kpis.forEach(([v, l]) => {
+    const d = document.createElement('div'); d.className = 'kpi';
+    const a = document.createElement('div'); a.className = 'v'; a.textContent = v;
+    const b = document.createElement('div'); b.className = 'l'; b.textContent = l;
+    d.appendChild(a); d.appendChild(b); k.appendChild(d);
+  });
+  const barras = [
+    ['Antes da régua', CONFIG.antesInadimplencia, 'var(--bad)'],
+    ['Com a régua (esta demo)', pct, 'var(--ok)'],
+  ];
+  const bs = $('barras'); bs.innerHTML = '';
+  barras.forEach(([r, v, cor]) => {
+    const l = document.createElement('div'); l.className = 'barra-linha';
+    const t = document.createElement('div'); t.textContent = r;
+    const tr = document.createElement('div'); tr.className = 'barra-trilho';
+    const p = document.createElement('div'); p.className = 'barra-preench'; p.style.background = cor; p.style.width = '0%';
+    tr.appendChild(p);
+    const n = document.createElement('div'); n.style.fontWeight = '800'; n.textContent = v + '%';
+    l.appendChild(t); l.appendChild(tr); l.appendChild(n); bs.appendChild(l);
+    requestAnimationFrame(() => requestAnimationFrame(() => { p.style.width = Math.min(100, v * 2.2) + '%'; }));
+  });
+}
+$('btnCta').onclick = () => {
+  const msg = 'Olá! Testei a demo da régua de cobrança para escolas e quero saber mais.';
+  window.open('https://wa.me/' + CONFIG.whatsappDestino + '?text=' + encodeURIComponent(msg), '_blank');
+};
+
+renderPassos();
+irPara(0);
+</script>
+</body>
+</html>
